@@ -112,6 +112,14 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      - name: Post today's top CVE to LinkedIn (optional, needs LINKEDIN_ACCESS_TOKEN)
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: python linkedin.py
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_ID: ${{ secrets.LINKEDIN_PERSON_ID }}
+
       - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
         if: matrix.stage == 'core'
         continue-on-error: true
