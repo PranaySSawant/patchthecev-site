@@ -208,6 +208,16 @@ jobs:
           MAIL_TO: pranaysawantss2003@gmail.com
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+      - name: Email the daily company-page post, ready to copy (04 UTC, or when post_now is ticked)
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
+        continue-on-error: true
+        run: python notify_email.py pagepost
+        env:
+          FORCE: ${{ inputs.post_now && '1' || '' }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+
       - name: Email if this run failed (optional)
         if: failure()
         continue-on-error: true
