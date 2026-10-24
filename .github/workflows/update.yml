@@ -118,18 +118,6 @@ jobs:
           FORCE: ${{ inputs.post_now && '1' || '' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: Email a ready-to-copy company page post (6 a day) and the Monday weekly wrap-up
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
-        continue-on-error: true
-        run: |
-          python notify_email.py pagepost
-          python notify_email.py weekly
-        env:
-          FORCE: ${{ inputs.post_now && '1' || '' }}
-          MAIL_USER: ${{ secrets.MAIL_USER }}
-          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
-          MAIL_TO: pranaysawantss2003@gmail.com
-
       - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
@@ -201,6 +189,38 @@ jobs:
         if: matrix.stage == 'core'
         continue-on-error: true
         run: python indexnow.py
+
+      - name: Email a ready-to-copy company page post (6 a day) and the Monday weekly wrap-up (after the deploy, so every link in the post is live)
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
+        continue-on-error: true
+        run: |
+          sleep 45   # let the new pages reach the CDN so the links in the post open
+          python notify_email.py pagepost
+          python notify_email.py weekly
+        env:
+          FORCE: ${{ inputs.post_now && '1' || '' }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+
+      - name: Save which posts were already emailed (posted.json) to the data branch
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf /tmp/databranch && mkdir /tmp/databranch
+          cp data.json /tmp/databranch/
+          cp sources.json /tmp/databranch/ 2>/dev/null || true
+          cp blog.json /tmp/databranch/ 2>/dev/null || true
+          cp posted.json /tmp/databranch/ 2>/dev/null || true
+          cd /tmp/databranch
+          git init -q -b data
+          git config user.name "patchwatch-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "CVE data $(date -u +%FT%TZ) (posts)"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
 
       - name: Email summary after each full 2-hour run (optional, needs MAIL_USER and MAIL_APP_PASSWORD)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
