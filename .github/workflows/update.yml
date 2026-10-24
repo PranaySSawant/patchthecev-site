@@ -149,6 +149,21 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      - name: Telegram channel post for new important CVEs (optional)
+        if: matrix.stage == 'core'
+        run: python telegram.py
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Weekly newsletter draft (Mondays, optional Buttondown)
+        if: matrix.stage == 'core'
+        run: python newsletter.py
+        continue-on-error: true
+        env:
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+
       - uses: actions/configure-pages@v5
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
       - uses: actions/upload-pages-artifact@v3
