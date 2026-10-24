@@ -168,6 +168,26 @@ jobs:
         continue-on-error: true
         run: python indexnow.py
 
+      - name: Email summary after each full 2-hour run (optional, needs MAIL_USER and MAIL_APP_PASSWORD)
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
+        continue-on-error: true
+        run: python notify_email.py run
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Email if this run failed (optional)
+        if: failure()
+        continue-on-error: true
+        run: python notify_email.py failure
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
       - name: Slack alert if this run failed (optional)
         if: failure()
         env:
