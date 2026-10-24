@@ -3,6 +3,7 @@ name: PatchTheCVE deploy (public repo; builds from the private source repo) (fas
 on:
   schedule:
     - cron: "7 */2 * * *"    # full run every 2 hours: new CVEs plus distro fixes
+    - cron: "30 7 * * *"     # daily 07:30 UTC (13:00 IST): also emails the ready-to-copy company page post
     - cron: "*/20 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
   workflow_dispatch:          # manual "Run workflow" button
     inputs:
@@ -200,7 +201,7 @@ jobs:
           MAIL_TO: pranaysawantss2003@gmail.com
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      - name: Email the daily company-page post, ready to copy (04 UTC, or when post_now is ticked)
+      - name: Email the daily company-page post, ready to copy (07:30 UTC, or when post_now is ticked)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
         run: python notify_email.py pagepost
