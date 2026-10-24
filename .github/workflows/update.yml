@@ -76,7 +76,7 @@ jobs:
           for REMOTE in "$PUB" origin; do
             if git ls-remote --exit-code --heads "$REMOTE" data >/dev/null 2>&1; then
               git fetch --depth=1 "$REMOTE" data
-              for f in data.json sources.json blog.json posted.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
+              for f in data.json sources.json blog.json posted.json advisories.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
               break
             fi
           done
@@ -100,6 +100,13 @@ jobs:
           VENDOR_BUDGET: "40"                        # CVEs per enrich chunk
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # optional, free key from nvd.nist.gov
           GITHUB_TOKEN: ${{ github.token }}          # lets the GitHub Advisory lookups use the higher rate limit
+
+      - name: GitHub advisories with no CVE id (optional)
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: python ghsa.py
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Build static site
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
@@ -141,6 +148,7 @@ jobs:
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
           cp posted.json /tmp/databranch/ 2>/dev/null || true
+          cp advisories.json /tmp/databranch/ 2>/dev/null || true
           cd /tmp/databranch
           git init -q -b data
           git config user.name "patchwatch-bot"
@@ -214,6 +222,7 @@ jobs:
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
           cp posted.json /tmp/databranch/ 2>/dev/null || true
+          cp advisories.json /tmp/databranch/ 2>/dev/null || true
           cd /tmp/databranch
           git init -q -b data
           git config user.name "patchwatch-bot"
