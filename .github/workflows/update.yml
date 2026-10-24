@@ -4,7 +4,12 @@ on:
   schedule:
     - cron: "7 */2 * * *"    # full run every 2 hours: new CVEs plus distro fixes
     - cron: "*/20 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
-  workflow_dispatch: {}       # manual "Run workflow" button
+  workflow_dispatch:          # manual "Run workflow" button
+    inputs:
+      post_now:
+        description: "Also post today's top CVE to LinkedIn and Slack right now (tick this for a test)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -106,14 +111,15 @@ jobs:
         run: python seo_check.py dist
 
       - name: Daily post drafts (LinkedIn, X, Reddit) to the run summary and Slack
-        if: matrix.stage == 'core'
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
         run: python social.py
         env:
+          FORCE: ${{ inputs.post_now && '1' || '' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Post today's top CVE to LinkedIn (optional, needs LINKEDIN_ACCESS_TOKEN)
-        if: matrix.stage == 'core'
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
         run: python linkedin.py
         env:
@@ -121,7 +127,7 @@ jobs:
           LINKEDIN_PERSON_ID: ${{ secrets.LINKEDIN_PERSON_ID }}
 
       - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
-        if: matrix.stage == 'core'
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
         run: |
           if [ "$(date -u +%u)" = "1" ] && [ "$(date -u +%H)" = "04" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -166,7 +172,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Weekly newsletter draft (Mondays, optional Buttondown)
-        if: matrix.stage == 'core'
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         run: python newsletter.py
         continue-on-error: true
         env:
