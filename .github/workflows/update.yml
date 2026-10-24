@@ -1,4 +1,4 @@
-name: PatchTheCEV deploy (public repo; builds from the private source repo) (fast every 20 min, full every 2 hours)
+name: PatchTheCVE deploy (public repo; builds from the private source repo) (fast every 20 min, full every 2 hours)
 
 on:
   schedule:
@@ -150,7 +150,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -sS -X POST -H 'Content-type: application/json' --data "{\"text\":\"PatchTheCEV update failed: $RUN_URL\"}" "$SLACK_WEBHOOK_URL"
+            curl -sS -X POST -H 'Content-type: application/json' --data "{\"text\":\"PatchTheCVE update failed: $RUN_URL\"}" "$SLACK_WEBHOOK_URL"
           else
             echo "No SLACK_WEBHOOK_URL set. GitHub also emails you about failed runs."
           fi
