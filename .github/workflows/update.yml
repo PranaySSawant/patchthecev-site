@@ -100,6 +100,31 @@ jobs:
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
         run: python build_site.py
 
+      - name: SEO check (titles, descriptions, links, sitemap; warn only)
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: python seo_check.py dist
+
+      - name: Daily post drafts (LinkedIn, X, Reddit) to the run summary and Slack
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: python social.py
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: |
+          if [ "$(date -u +%u)" = "1" ] && [ "$(date -u +%H)" = "04" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pip install -q google-auth requests
+            python gsc_report.py
+          fi
+        env:
+          GSC_SA_JSON: ${{ secrets.GSC_SA_JSON }}
+          GSC_SITE: ${{ secrets.GSC_SITE }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Save data to the data branch (single squashed commit)
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
         env:
