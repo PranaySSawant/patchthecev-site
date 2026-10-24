@@ -118,6 +118,18 @@ jobs:
           FORCE: ${{ inputs.post_now && '1' || '' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      - name: Email a ready-to-copy company page post (6 a day) and the Monday weekly wrap-up
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
+        continue-on-error: true
+        run: |
+          python notify_email.py pagepost
+          python notify_email.py weekly
+        env:
+          FORCE: ${{ inputs.post_now && '1' || '' }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+
       - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
@@ -199,16 +211,6 @@ jobs:
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-      - name: Email the daily company-page post, ready to copy (02:07 UTC = 7:37 AM IST, or when post_now is ticked)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
-        continue-on-error: true
-        run: python notify_email.py pagepost
-        env:
-          FORCE: ${{ inputs.post_now && '1' || '' }}
-          MAIL_USER: ${{ secrets.MAIL_USER }}
-          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
-          MAIL_TO: pranaysawantss2003@gmail.com
 
       - name: Email if this run failed (optional)
         if: failure()
