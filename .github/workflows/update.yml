@@ -76,7 +76,7 @@ jobs:
           for REMOTE in "$PUB" origin; do
             if git ls-remote --exit-code --heads "$REMOTE" data >/dev/null 2>&1; then
               git fetch --depth=1 "$REMOTE" data
-              for f in data.json sources.json blog.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
+              for f in data.json sources.json blog.json posted.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
               break
             fi
           done
@@ -118,7 +118,7 @@ jobs:
           FORCE: ${{ inputs.post_now && '1' || '' }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: Post today's top CVE to LinkedIn (optional, needs LINKEDIN_ACCESS_TOKEN)
+      - name: Post the best new CVE to LinkedIn every 2 hours (optional, needs LINKEDIN_ACCESS_TOKEN)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *'
         continue-on-error: true
         run: python linkedin.py
@@ -148,6 +148,7 @@ jobs:
           cp data.json /tmp/databranch/
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
+          cp posted.json /tmp/databranch/ 2>/dev/null || true
           cd /tmp/databranch
           git init -q -b data
           git config user.name "patchwatch-bot"
