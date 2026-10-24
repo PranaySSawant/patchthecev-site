@@ -138,6 +138,11 @@ jobs:
         with:
           artifact_name: pages-${{ matrix.stage }}
 
+      - name: Ping IndexNow (Bing, Yandex) about new pages
+        if: matrix.stage == 'core'
+        continue-on-error: true
+        run: python indexnow.py
+
       - name: Slack alert if this run failed (optional)
         if: failure()
         env:
