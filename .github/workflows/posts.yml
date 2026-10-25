@@ -1,0 +1,58 @@
+name: PatchTheCVE LinkedIn post emails (light, extra schedule so posts arrive even when the big run is late)
+
+on:
+  schedule:
+    - cron: "40 6,8,10,12,14,16 * * *"   # about 12:10, 14:10, 16:10, 18:10, 20:10, 22:10 IST
+    - cron: "15 7,9,11,13,15,17 * * *"   # backup half hours later
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patchwatch
+  cancel-in-progress: false
+
+jobs:
+  posts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: PranaySSawant/patchwatch
+          token: ${{ secrets.SOURCE_TOKEN }}
+          path: src
+      - name: Restore data from the data branch
+        working-directory: src
+        env:
+          PUB: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          git fetch --depth=1 "$PUB" data
+          for f in data.json sources.json blog.json posted.json advisories.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
+      - name: Email the post(s) that are due (and the Monday wrap-up)
+        working-directory: src
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+        run: |
+          cp posted.json /tmp/posted.before 2>/dev/null || true
+          python notify_email.py pagepost
+          python notify_email.py weekly
+      - name: Save posted.json back to the data branch if it changed
+        working-directory: src
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f posted.json ] && ! cmp -s posted.json /tmp/posted.before; then
+            rm -rf /tmp/databranch && mkdir /tmp/databranch
+            for f in data.json sources.json blog.json posted.json advisories.json; do cp $f /tmp/databranch/ 2>/dev/null || true; done
+            cd /tmp/databranch
+            git init -q -b data
+            git config user.name "patchwatch-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add -A
+            git commit -q -m "posts $(date -u +%FT%TZ)"
+            git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+          fi
