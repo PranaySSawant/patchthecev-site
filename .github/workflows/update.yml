@@ -197,6 +197,7 @@ jobs:
           p = sys.argv[1].split(".")[1]; p += "=" * (-len(p) % 4)
           c = json.loads(base64.urlsafe_b64decode(p))
           print("OIDC sub:", c.get("sub")); print("OIDC aud:", c.get("aud")); print("OIDC iss:", c.get("iss"))
+          print("::warning title=OIDC claims::sub=%s aud=%s iss=%s" % (c.get("sub"), c.get("aud"), c.get("iss")))
           PY
       - name: Publish to S3 (served by CloudFront; changed files only)
         if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
