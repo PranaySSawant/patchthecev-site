@@ -81,6 +81,20 @@ jobs:
             fi
           done
 
+      - name: AWS credentials (OIDC, no stored keys)
+        id: aws
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
+          aws-region: ap-south-1
+      - name: Use the newest data (S3 state bucket, falls back to the data branch)
+        continue-on-error: true
+        if: steps.aws.outcome == 'success'
+        env:
+          STATE_BUCKET: patchthecve-state-080369785465
+        run: python state.py pull
+
       # The big Debian / Alpine / Microsoft files are downloaded once and reused by the next stages and runs.
       - uses: actions/cache@v4
         with:
@@ -138,13 +152,21 @@ jobs:
           GSC_SITE: ${{ secrets.GSC_SITE }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      - name: Save data.json to the S3 state bucket (no size limit)
+        continue-on-error: true
+        if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
+        env:
+          STATE_BUCKET: patchthecve-state-080369785465
+        run: python state.py push
+
       - name: Save data to the data branch (single squashed commit)
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           rm -rf /tmp/databranch && mkdir /tmp/databranch
-          cp data.json /tmp/databranch/
+          # git refuses files over 100 MB; the full data lives in the S3 state bucket, the branch copy is only a fallback
+          [ "$(stat -c%s data.json)" -lt 80000000 ] && cp data.json /tmp/databranch/ || echo "data.json too big for the data branch, S3 state bucket holds it"
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
           cp posted.json /tmp/databranch/ 2>/dev/null || true
@@ -156,6 +178,7 @@ jobs:
           git add -A
           git commit -q -m "CVE data $(date -u +%FT%TZ) (${{ matrix.stage }})"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+
 
       - name: Slack alert for new important CVEs (optional)
         if: matrix.stage == 'core'
@@ -179,14 +202,6 @@ jobs:
         env:
           BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
 
-      - name: AWS credentials (OIDC, no stored keys)
-        id: aws
-        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
-        continue-on-error: true
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
-          aws-region: ap-south-1
       - name: Show the OIDC subject (only if the role could not be assumed)
         if: always() && steps.aws.outcome == 'failure'
         continue-on-error: true
@@ -248,7 +263,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           rm -rf /tmp/databranch && mkdir /tmp/databranch
-          cp data.json /tmp/databranch/
+          # git refuses files over 100 MB; the full data lives in the S3 state bucket, the branch copy is only a fallback
+          [ "$(stat -c%s data.json)" -lt 80000000 ] && cp data.json /tmp/databranch/ || echo "data.json too big for the data branch, S3 state bucket holds it"
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
           cp posted.json /tmp/databranch/ 2>/dev/null || true

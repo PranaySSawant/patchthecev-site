@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: patchwatch
@@ -30,6 +31,20 @@ jobs:
         run: |
           git fetch --depth=1 "$PUB" data
           for f in data.json sources.json blog.json posted.json advisories.json; do git checkout FETCH_HEAD -- $f 2>/dev/null || true; done
+      - name: AWS credentials (OIDC)
+        id: aws
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
+          aws-region: ap-south-1
+      - name: Use the newest data (S3 state bucket)
+        if: steps.aws.outcome == 'success'
+        continue-on-error: true
+        working-directory: src
+        env:
+          STATE_BUCKET: patchthecve-state-080369785465
+        run: python state.py pull
       - name: Email the post(s) that are due (and the Monday wrap-up)
         working-directory: src
         env:
@@ -47,7 +62,8 @@ jobs:
         run: |
           if [ -f posted.json ] && ! cmp -s posted.json /tmp/posted.before; then
             rm -rf /tmp/databranch && mkdir /tmp/databranch
-            for f in data.json sources.json blog.json posted.json advisories.json; do cp $f /tmp/databranch/ 2>/dev/null || true; done
+            for f in sources.json blog.json posted.json advisories.json; do cp $f /tmp/databranch/ 2>/dev/null || true; done
+            [ -f data.json ] && [ "$(stat -c%s data.json)" -lt 80000000 ] && cp data.json /tmp/databranch/ || true
             cd /tmp/databranch
             git init -q -b data
             git config user.name "patchwatch-bot"
