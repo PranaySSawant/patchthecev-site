@@ -83,7 +83,6 @@ jobs:
 
       - name: AWS credentials (OIDC, no stored keys)
         id: aws
-        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
@@ -122,8 +121,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Build static site
+      - name: Restore the page and software caches (incremental build)
+        if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
+        continue-on-error: true
+        env:
+          STATE_BUCKET: patchthecve-state-080369785465
+        run: python state.py pull_hash
+
+      - name: Build static site (only changed CVE pages are rendered)
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
+        env:
+          INCREMENTAL: ${{ steps.aws.outcome == 'success' && '1' || '0' }}
         run: python build_site.py
 
       - name: SEO check (titles, descriptions, links, sitemap; warn only)
@@ -215,28 +223,21 @@ jobs:
           print("::warning title=OIDC claims::sub=%s aud=%s iss=%s" % (c.get("sub"), c.get("aud"), c.get("iss")))
           PY
       - name: Publish to S3 (served by CloudFront; changed files only)
-        if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
-        continue-on-error: true
+        id: s3
+        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
         env:
           S3_BUCKET: patchthecve-site-080369785465
+          STATE_BUCKET: patchthecve-state-080369785465
         run: |
           aws configure set default.s3.max_concurrent_requests 100
           aws configure set default.s3.max_queue_size 20000
           python s3_deploy.py dist
-
-      - uses: actions/configure-pages@v5
-        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
-      - uses: actions/upload-pages-artifact@v3
-        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
-        with:
-          path: src/dist
-          name: pages-${{ matrix.stage }}
-      - name: Publish to GitHub Pages
-        id: deployment
-        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
-        uses: actions/deploy-pages@v4
-        with:
-          artifact_name: pages-${{ matrix.stage }}
+      - name: Save the page and software caches (only after a good upload)
+        if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.s3.outcome == 'success'
+        continue-on-error: true
+        env:
+          STATE_BUCKET: patchthecve-state-080369785465
+        run: python state.py push_hash
 
       - name: Ping IndexNow (Bing, Yandex) about new pages
         if: matrix.stage == 'core'
