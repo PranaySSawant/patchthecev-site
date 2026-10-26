@@ -45,7 +45,7 @@ jobs:
             echo 'stages=["core"]' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo 'stages=["core","enrich1","enrich2","enrich3"]' >> "$GITHUB_OUTPUT"
+          echo 'stages=["core","enrich1"]' >> "$GITHUB_OUTPUT"
           WINDOW=0
           [ "$SCHED" = "37 1-23/2 * * *" ] && WINDOW=110
           [ "$MODE" = "full-timer" ] && WINDOW=50
@@ -137,7 +137,7 @@ jobs:
           PYTHONUNBUFFERED: "1"                      # print log lines live instead of at the end
           PW_CACHE_DIR: .cache
           STAGE: ${{ matrix.stage == 'core' && 'core' || 'enrich' }}
-          VENDOR_BUDGET: "40"                        # CVEs per enrich chunk
+          VENDOR_BUDGET: "120"                       # CVEs per enrich chunk (one enrich stage, so one build and upload instead of three)
           BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || '1' }}   # history: one 10-day window (about 6,000 CVEs) per full run
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # optional, free key from nvd.nist.gov
           GITHUB_TOKEN: ${{ github.token }}          # lets the GitHub Advisory lookups use the higher rate limit
