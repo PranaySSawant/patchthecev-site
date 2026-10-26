@@ -2,8 +2,8 @@ name: PatchTheCVE deploy (public repo; builds from the private source repo) (fas
 
 on:
   schedule:
-    - cron: "7 */2 * * *"    # full run every 2 hours: new CVEs plus distro fixes
-    - cron: "37 1-23/2 * * *"  # backup full run on the odd hours (GitHub often skips scheduled runs); skipped when a full run finished in the last 110 minutes
+    - cron: "30 */2 * * *"   # full run every 2 hours at 00:00, 02:00 ... IST (18:30, 20:30 ... UTC): new CVEs plus distro fixes
+    - cron: "30 1-23/2 * * *"  # backup full run on the odd hours (GitHub often skips scheduled runs); skipped when a full run finished in the last 110 minutes
     - cron: "*/20 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
   workflow_dispatch:          # manual "Run workflow" button, and the AWS timer (mode fast = core only, mode full-timer = full run unless one finished in the last 50 minutes)
     inputs:
@@ -47,7 +47,7 @@ jobs:
           fi
           echo 'stages=["core","enrich1"]' >> "$GITHUB_OUTPUT"
           WINDOW=0
-          [ "$SCHED" = "37 1-23/2 * * *" ] && WINDOW=110
+          [ "$SCHED" = "30 1-23/2 * * *" ] && WINDOW=110
           [ "$MODE" = "full-timer" ] && WINDOW=50
           if [ "$WINDOW" -gt 0 ]; then
             # backup and timer runs: only when no full run (one with an enrich1 job) finished recently
