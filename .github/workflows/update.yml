@@ -44,7 +44,7 @@ jobs:
     defaults:
       run:
         working-directory: src
-    timeout-minutes: 20                 # a hung feed can never block the queue for long
+    timeout-minutes: 45                 # first S3 upload is large; later uploads send only changed files
     strategy:
       max-parallel: 1
       matrix:
@@ -204,7 +204,10 @@ jobs:
         continue-on-error: true
         env:
           S3_BUCKET: patchthecve-site-080369785465
-        run: python s3_deploy.py dist
+        run: |
+          aws configure set default.s3.max_concurrent_requests 100
+          aws configure set default.s3.max_queue_size 20000
+          python s3_deploy.py dist
 
       - uses: actions/configure-pages@v5
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
