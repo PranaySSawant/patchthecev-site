@@ -187,6 +187,17 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
           aws-region: ap-south-1
+      - name: Show the OIDC subject (only if the role could not be assumed)
+        if: always() && steps.aws.outcome == 'failure'
+        continue-on-error: true
+        run: |
+          T=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])")
+          python3 - "$T" <<'PY'
+          import sys, json, base64
+          p = sys.argv[1].split(".")[1]; p += "=" * (-len(p) % 4)
+          c = json.loads(base64.urlsafe_b64decode(p))
+          print("OIDC sub:", c.get("sub")); print("OIDC aud:", c.get("aud")); print("OIDC iss:", c.get("iss"))
+          PY
       - name: Publish to S3 (served by CloudFront; changed files only)
         if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
         continue-on-error: true
