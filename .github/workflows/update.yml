@@ -3,6 +3,7 @@ name: PatchTheCVE deploy (public repo; builds from the private source repo) (fas
 on:
   schedule:
     - cron: "7 */2 * * *"    # full run every 2 hours: new CVEs plus distro fixes
+    - cron: "37 1-23/2 * * *"  # backup full run on the odd hours (GitHub often skips scheduled runs); skipped when a full run finished in the last 110 minutes
     - cron: "*/20 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
   workflow_dispatch:          # manual "Run workflow" button
     inputs:
@@ -15,6 +16,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: patchwatch
@@ -26,13 +28,28 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       stages: ${{ steps.p.outputs.stages }}
+      skip: ${{ steps.p.outputs.skip }}
     steps:
       - id: p
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          echo "skip=false" >> "$GITHUB_OUTPUT"
           if [ "${{ github.event.schedule }}" = "*/20 * * * *" ]; then
             echo 'stages=["core"]' >> "$GITHUB_OUTPUT"
-          else
-            echo 'stages=["core","enrich1","enrich2","enrich3"]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'stages=["core","enrich1","enrich2","enrich3"]' >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event.schedule }}" = "37 1-23/2 * * *" ]; then
+            # backup run: only when no full run (one with an enrich1 job) finished in the last 110 minutes
+            CUT=$(date -u -d '110 minutes ago' +%FT%TZ)
+            for R in $(gh api "repos/${{ github.repository }}/actions/workflows/update.yml/runs?status=success&per_page=10" --jq ".workflow_runs[]|select(.updated_at>\"$CUT\")|.id"); do
+              if gh api "repos/${{ github.repository }}/actions/runs/$R/jobs" --jq '.jobs[].name' | grep -q 'enrich1'; then
+                echo "A full run ($R) finished recently, skipping this backup run"
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                break
+              fi
+            done
           fi
 
   # Four stages run one after another and each one publishes the site:
@@ -40,6 +57,7 @@ jobs:
   #   enrich* = distro and ecosystem fixes for the next 20 CVEs (highest priority first) -> live again after each chunk
   update:
     needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
