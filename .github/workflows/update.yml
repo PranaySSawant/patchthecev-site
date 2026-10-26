@@ -179,6 +179,21 @@ jobs:
         env:
           BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
 
+      - name: AWS credentials (OIDC, no stored keys)
+        id: aws
+        if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
+          aws-region: ap-south-1
+      - name: Publish to S3 (served by CloudFront; changed files only)
+        if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
+        continue-on-error: true
+        env:
+          S3_BUCKET: patchthecve-site-080369785465
+        run: python s3_deploy.py dist
+
       - uses: actions/configure-pages@v5
         if: matrix.stage == 'core' || steps.collect.outputs.changed == '1'
       - uses: actions/upload-pages-artifact@v3
