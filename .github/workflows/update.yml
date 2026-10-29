@@ -265,6 +265,7 @@ jobs:
         env:
           S3_BUCKET: patchthecve-site-080369785465
           STATE_BUCKET: patchthecve-state-080369785465
+          CLOUDFRONT_DISTRIBUTION_ID: E15T8DM1R8I96A   # changed CSS/JS/images are invalidated so visitors never see an old copy
         run: |
           aws configure set default.s3.max_concurrent_requests 100
           aws configure set default.s3.max_queue_size 20000
