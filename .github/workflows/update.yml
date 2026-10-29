@@ -70,7 +70,7 @@ jobs:
     defaults:
       run:
         working-directory: src
-    timeout-minutes: 45                 # first S3 upload is large; later uploads send only changed files
+    timeout-minutes: 120                # a design change (new CSS version) re-uploads every page once; normal runs send only changed files
     strategy:
       max-parallel: 1
       matrix:
