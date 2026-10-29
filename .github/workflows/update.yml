@@ -240,6 +240,16 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+      - name: Bluesky and Mastodon posts for new important CVEs (optional)
+        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        run: python fediverse.py
+        continue-on-error: true
+        env:
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          MASTODON_URL: ${{ secrets.MASTODON_URL }}
+          MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
+
       - name: Weekly newsletter draft (Mondays, optional Buttondown)
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         run: python newsletter.py
