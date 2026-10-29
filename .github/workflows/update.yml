@@ -137,8 +137,9 @@ jobs:
           PW_CACHE_DIR: .cache
           STAGE: ${{ matrix.stage == 'core' && 'core' || 'enrich' }}
           VENDOR_BUDGET: "120"                       # CVEs per enrich chunk (one enrich stage, so one build and upload instead of three)
-          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || ((github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '4' || '1') }}   # history: 1 window on full runs, 4 on the backfill lane (about 6,000 CVEs per window; older years use longer windows)
-          BACKFILL_SECONDS: ${{ (github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '900' || '300' }}
+          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || ((github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '3' || '1') }}   # history: 1 window on full runs, 3 on the backfill lane (about 6,000 CVEs per window; older years use longer windows)
+          BACKFILL_MAX_NEW: "15000"                 # stop adding old CVEs once a run has added this many (keeps every run short)
+          BACKFILL_SECONDS: ${{ (github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '480' || '240' }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # optional, free key from nvd.nist.gov
           GITHUB_TOKEN: ${{ github.token }}          # lets the GitHub Advisory lookups use the higher rate limit
 
