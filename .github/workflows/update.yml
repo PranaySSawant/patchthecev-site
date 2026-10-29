@@ -167,6 +167,14 @@ jobs:
         continue-on-error: true
         run: python seo_check.py dist
 
+      - name: Readability check (text contrast on key pages and search results; warn only, manual runs)
+        if: matrix.stage == 'core' && inputs.mode == 'manual'
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          pip install playwright >/dev/null 2>&1 && python -m playwright install --with-deps chromium >/dev/null 2>&1
+          python contrast_check.py dist
+
       - name: Daily post drafts (LinkedIn, X, Reddit) to the run summary and Slack
         if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast'
         continue-on-error: true
