@@ -138,7 +138,7 @@ jobs:
           PW_CACHE_DIR: .cache
           STAGE: ${{ matrix.stage == 'core' && 'core' || 'enrich' }}
           VENDOR_BUDGET: "120"                       # CVEs per enrich chunk (one enrich stage, so one build and upload instead of three)
-          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || '1' }}   # history: one 10-day window (about 6,000 CVEs) per full run
+          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || '2' }}   # history: two windows (about 6,000 CVEs each; older years use longer windows) per full run
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # optional, free key from nvd.nist.gov
           GITHUB_TOKEN: ${{ github.token }}          # lets the GitHub Advisory lookups use the higher rate limit
 
