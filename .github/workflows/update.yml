@@ -168,6 +168,8 @@ jobs:
         if: matrix.stage == 'core'
         continue-on-error: true
         run: python seo_check.py dist
+        env:
+          SEO_FULL: ${{ inputs.mode == 'manual' && github.event.inputs.post_now != 'true' && '1' || '' }}
 
       - name: Readability check (text contrast on key pages and search results; warn only, manual runs)
         if: matrix.stage == 'core' && inputs.mode == 'manual'
