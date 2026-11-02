@@ -299,8 +299,11 @@ jobs:
           sleep 45   # let the new pages reach the CDN so the links in the post open
           python notify_email.py pagepost
           python notify_email.py weekly
+          python linkedin_post.py
         env:
           FORCE: ${{ inputs.post_now && '1' || '' }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_ID: ${{ secrets.LINKEDIN_PERSON_ID }}
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
