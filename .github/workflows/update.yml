@@ -84,6 +84,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       # The code lives in a PRIVATE repo; SOURCE_TOKEN is a read-only token for it. Only the built site is ever published here.
+      - name: Free disk space (a full re-upload of every page needs room)
+        working-directory: .
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost 2>/dev/null || true
+          df -h / | tail -1
       - uses: actions/checkout@v4
         with:
           repository: PranaySSawant/patchwatch
