@@ -1,10 +1,10 @@
-name: PatchTheCVE deploy (public repo; builds from the private source repo) (fast every 20 min, full every 2 hours)
+name: PatchTheCVE deploy (public repo; builds from the private source repo) (fast every 30 min, full every 2 hours)
 
 on:
   schedule:
     - cron: "30 */2 * * *"   # full run every 2 hours at 00:00, 02:00 ... IST (18:30, 20:30 ... UTC): new CVEs plus distro fixes
     - cron: "30 1-23/2 * * *"  # history backfill lane on the odd hours, one hour after each full run: core stage only, several windows, no emails
-    - cron: "*/20 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
+    - cron: "*/30 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
   workflow_dispatch:          # manual "Run workflow" button, and the AWS timer (mode fast = core only, mode full-timer = full run unless one finished in the last 50 minutes)
     inputs:
       mode:
@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # fast (every 20 min) runs do only the core stage; the 2-hourly, push and manual runs do all four
+  # fast (every 30 min) runs do only the core stage; the 2-hourly, push and manual runs do all four
   plan:
     runs-on: ubuntu-latest
     outputs:
@@ -41,8 +41,12 @@ jobs:
           SCHED: ${{ github.event.schedule }}
         run: |
           echo "skip=false" >> "$GITHUB_OUTPUT"
-          if [ "$SCHED" = "*/20 * * * *" ] || [ "$MODE" = "fast" ] || [ "$SCHED" = "30 1-23/2 * * *" ] || [ "$MODE" = "backfill" ]; then
+          if [ "$SCHED" = "*/30 * * * *" ] || [ "$MODE" = "fast" ] || [ "$SCHED" = "30 1-23/2 * * *" ] || [ "$MODE" = "backfill" ]; then
             echo 'stages=["core"]' >> "$GITHUB_OUTPUT"
+            if [ "$SCHED" = "*/30 * * * *" ] || [ "$MODE" = "fast" ]; then   # a fast run adds nothing while another run is already working: skip it instead of queueing
+              BUSY=$(gh api "repos/${{ github.repository }}/actions/workflows/update.yml/runs?status=in_progress&per_page=5" --jq "[.workflow_runs[]|select(.id!=${{ github.run_id }})]|length" 2>/dev/null || echo 0)
+              if [ "${BUSY:-0}" -gt 0 ]; then echo "another run is in progress, skipping this fast run"; echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+            fi
             exit 0
           fi
           echo 'stages=["core","enrich1"]' >> "$GITHUB_OUTPUT"
@@ -138,7 +142,7 @@ jobs:
           PW_CACHE_DIR: .cache
           STAGE: ${{ matrix.stage == 'core' && 'core' || 'enrich' }}
           VENDOR_BUDGET: "120"                       # CVEs per enrich chunk (one enrich stage, so one build and upload instead of three)
-          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/20 * * * *' || inputs.mode == 'fast') && '0' || ((github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '3' || '1') }}   # history: 1 window on full runs, 3 on the backfill lane (about 6,000 CVEs per window; older years use longer windows)
+          BACKFILL_WINDOWS: ${{ (github.event.schedule == '*/30 * * * *' || inputs.mode == 'fast') && '0' || ((github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '3' || '1') }}   # history: 1 window on full runs, 3 on the backfill lane (about 6,000 CVEs per window; older years use longer windows)
           BACKFILL_MAX_NEW: "15000"                 # stop adding old CVEs once a run has added this many (keeps every run short)
           BACKFILL_SECONDS: ${{ (github.event.schedule == '30 1-23/2 * * *' || inputs.mode == 'backfill') && '480' || '240' }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # optional, free key from nvd.nist.gov
@@ -180,7 +184,7 @@ jobs:
           python contrast_check.py dist
 
       - name: Daily post drafts (LinkedIn, X, Reddit) to the run summary and Slack
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         continue-on-error: true
         run: python social.py
         env:
@@ -188,7 +192,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Weekly Search Console report (optional, needs GSC_SA_JSON and GSC_SITE)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         continue-on-error: true
         run: |
           if [ "$(date -u +%u)" = "1" ] && [ "$(date -u +%H)" = "04" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -244,7 +248,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Bluesky and Mastodon posts for new important CVEs (optional)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         run: python fediverse.py
         continue-on-error: true
         env:
@@ -254,7 +258,7 @@ jobs:
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
 
       - name: Weekly newsletter draft (Mondays, optional Buttondown)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         run: python newsletter.py
         continue-on-error: true
         env:
@@ -296,7 +300,7 @@ jobs:
         run: python indexnow.py
 
       - name: Email a ready-to-copy company page post (6 a day) and the Monday weekly wrap-up (after the deploy, so every link in the post is live)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         continue-on-error: true
         run: |
           sleep 45   # let the new pages reach the CDN so the links in the post open
@@ -312,7 +316,7 @@ jobs:
           MAIL_TO: pranaysawantss2003@gmail.com
 
       - name: Save which posts were already emailed (posted.json) to the data branch
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -333,7 +337,7 @@ jobs:
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
 
       - name: Email summary after each full 2-hour run (optional, needs MAIL_USER and MAIL_APP_PASSWORD)
-        if: matrix.stage == 'core' && github.event.schedule != '*/20 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
+        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
         continue-on-error: true
         run: python notify_email.py run
         env:
