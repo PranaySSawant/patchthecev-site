@@ -226,6 +226,7 @@ jobs:
           [ "$(stat -c%s data.json)" -lt 80000000 ] && cp data.json /tmp/databranch/ || echo "data.json too big for the data branch, S3 state bucket holds it"
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
+          python merge_posted.py || true   # keep posts recorded by other runs meanwhile
           cp posted.json /tmp/databranch/ 2>/dev/null || true
           cp advisories.json /tmp/databranch/ 2>/dev/null || true
           cd /tmp/databranch
@@ -331,6 +332,7 @@ jobs:
           [ "$(stat -c%s data.json)" -lt 80000000 ] && cp data.json /tmp/databranch/ || echo "data.json too big for the data branch, S3 state bucket holds it"
           cp sources.json /tmp/databranch/ 2>/dev/null || true
           cp blog.json /tmp/databranch/ 2>/dev/null || true
+          python merge_posted.py || true   # keep posts recorded by other runs meanwhile
           cp posted.json /tmp/databranch/ 2>/dev/null || true
           cp advisories.json /tmp/databranch/ 2>/dev/null || true
           cd /tmp/databranch
