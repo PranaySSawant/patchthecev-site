@@ -52,10 +52,13 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_ID: ${{ secrets.LINKEDIN_PERSON_ID }}
         run: |
           cp posted.json /tmp/posted.before 2>/dev/null || true
           python notify_email.py pagepost
           python notify_email.py weekly
+          python linkedin_post.py   # publishes the same post to the LinkedIn profile (skips without a token or when nothing was due)
       - name: Save posted.json back to the data branch if it changed
         working-directory: src
         env:
