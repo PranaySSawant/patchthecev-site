@@ -17,7 +17,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: patchwatch
+  group: patchwatch-posts   # its own queue: a waiting post run used to be replaced (cancelled) by the next fast run
   cancel-in-progress: false
 
 jobs:
