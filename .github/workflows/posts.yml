@@ -6,6 +6,11 @@ on:
     - cron: "5 5,7,11,15,17 * * *"   # backup half an hour later
     - cron: "40 5,7,11,15,17 * * *"  # second backup
   workflow_dispatch:
+    inputs:
+      post_now:
+        description: "Send and publish the next post right now (a test), ignoring the time slots"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -54,6 +59,7 @@ jobs:
           MAIL_TO: pranaysawantss2003@gmail.com
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_PERSON_ID: ${{ secrets.LINKEDIN_PERSON_ID }}
+          FORCE: ${{ inputs.post_now && '1' || '' }}
         run: |
           cp posted.json /tmp/posted.before 2>/dev/null || true
           python notify_email.py pagepost
