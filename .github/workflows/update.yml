@@ -11,6 +11,10 @@ on:
         description: "manual (default), fast, backfill or full-timer (used by the AWS timer)"
         type: string
         default: manual
+      confirm_big_upload:
+        description: "Approve a very large upload (cost guard paused it: more than 20,000 existing pages would be rewritten)"
+        type: boolean
+        default: false
       post_now:
         description: "Also post today's top CVE to LinkedIn and Slack right now (tick this for a test)"
         type: boolean
@@ -300,6 +304,11 @@ jobs:
           S3_BUCKET: patchthecve-site-080369785465
           STATE_BUCKET: patchthecve-state-080369785465
           CLOUDFRONT_DISTRIBUTION_ID: E15T8DM1R8I96A   # changed CSS/JS/images are invalidated so visitors never see an old copy
+          CONFIRM_BIG_UPLOAD: ${{ inputs.confirm_big_upload && '1' || '' }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           aws configure set default.s3.max_concurrent_requests 100
           aws configure set default.s3.max_queue_size 20000
