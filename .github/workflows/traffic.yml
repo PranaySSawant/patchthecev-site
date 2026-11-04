@@ -1,0 +1,41 @@
+name: Traffic report now (CloudFront logs, one-off email)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: PranaySSawant/patchwatch
+          token: ${{ secrets.SOURCE_TOKEN }}
+          path: src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
+          aws-region: ap-south-1
+      - name: Email the traffic report now (last 24 hours; logs are kept)
+        run: |
+          pip install -q boto3
+          python traffic_report.py > /tmp/out.txt 2>&1 || { tail -n 6 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::error title=traffic::/'; echo; exit 1; }
+          tail -n 3 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::notice title=traffic::/'; echo
+        env:
+          FORCE: "1"
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
