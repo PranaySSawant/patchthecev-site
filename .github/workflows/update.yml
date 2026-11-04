@@ -78,7 +78,7 @@ jobs:
     defaults:
       run:
         working-directory: src
-    timeout-minutes: 120                # a design change (new CSS version) re-uploads every page once; normal runs send only changed files
+    timeout-minutes: 330                # GitHub allows 360; a design change (new CSS version) re-uploads every page once; normal runs send only changed files
     strategy:
       max-parallel: 1
       matrix:
@@ -126,7 +126,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
           aws-region: ap-south-1
-          role-duration-seconds: 14400   # a full re-upload of every page can take over an hour
+          role-duration-seconds: 21600   # a full re-upload of every page can take over an hour
       - name: Use the newest data (S3 state bucket, falls back to the data branch)
         continue-on-error: true
         if: steps.aws.outcome == 'success'
