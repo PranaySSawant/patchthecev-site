@@ -2,9 +2,9 @@ name: PatchTheCVE LinkedIn post emails (light, extra schedule so posts arrive ev
 
 on:
   schedule:
-    - cron: "35 4,6,10,14,16 * * *"   # 10:05 AM, 12:05 PM, 4:05 PM, 8:05 PM, 10:05 PM IST: the 5 daily posts (10:00, 12:00, 16:00, 20:00, 22:00)
-    - cron: "5 5,7,11,15,17 * * *"   # backup half an hour later
-    - cron: "40 5,7,11,15,17 * * *"  # second backup
+    - cron: "35 6,12 * * *"   # 12:05 PM and 6:05 PM IST: the 2 daily posts (12:00, 18:00)
+    - cron: "5 7,13 * * *"   # backup half an hour later
+    - cron: "40 7,13 * * *"  # second backup
   workflow_dispatch:
     inputs:
       post_now:
