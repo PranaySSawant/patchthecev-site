@@ -305,6 +305,7 @@ jobs:
           STATE_BUCKET: patchthecve-state-080369785465
           CLOUDFRONT_DISTRIBUTION_ID: E15T8DM1R8I96A   # changed CSS/JS/images are invalidated so visitors never see an old copy
           CONFIRM_BIG_UPLOAD: ${{ inputs.confirm_big_upload && '1' || '' }}
+          BIG_UPLOAD_LIMIT: "150000"   # raised for the one-time analytics migration (about 70,000 pages per run, ~USD 0.35 each); a rewrite of everything at once still trips it
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
