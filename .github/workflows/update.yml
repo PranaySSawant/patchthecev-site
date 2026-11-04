@@ -305,7 +305,6 @@ jobs:
           STATE_BUCKET: patchthecve-state-080369785465
           CLOUDFRONT_DISTRIBUTION_ID: E15T8DM1R8I96A   # changed CSS/JS/images are invalidated so visitors never see an old copy
           CONFIRM_BIG_UPLOAD: ${{ inputs.confirm_big_upload && '1' || '' }}
-          BIG_UPLOAD_LIMIT: "40000"   # raised for today's KB/patch page changes (about 21,000 pages, ~USD 0.11); set back to 20000 afterwards
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
