@@ -32,7 +32,8 @@ jobs:
       - name: Email the traffic report now (last 24 hours; logs are kept)
         run: |
           pip install -q boto3
-          python traffic_report.py
+          python traffic_report.py > /tmp/out.txt 2>&1 || { tail -n 6 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::error title=traffic::/'; echo; exit 1; }
+          tail -n 3 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::notice title=traffic::/'; echo
         env:
           FORCE: "1"
           MAIL_USER: ${{ secrets.MAIL_USER }}
