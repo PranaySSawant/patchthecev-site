@@ -27,7 +27,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: patchwatch
+  group: patchwatch-2   # new queue name: a stuck run on GitHub's side was blocking the old one
   cancel-in-progress: false
 
 jobs:
