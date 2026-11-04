@@ -213,17 +213,6 @@ jobs:
           GSC_SITE: ${{ secrets.GSC_SITE }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: Weekly traffic email from the CloudFront logs (Mondays, no Google account needed)
-        if: matrix.stage == 'core' && github.event.schedule != '*/30 * * * *' && inputs.mode != 'fast' && github.event.schedule != '30 1-23/2 * * *' && inputs.mode != 'backfill'
-        continue-on-error: true
-        run: |
-          pip install -q boto3
-          python traffic_report.py
-        env:
-          MAIL_USER: ${{ secrets.MAIL_USER }}
-          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
-          MAIL_TO: pranaysawantss2003@gmail.com
-
       - name: Save data.json to the S3 state bucket (no size limit)
         continue-on-error: true
         if: (matrix.stage == 'core' || steps.collect.outputs.changed == '1') && steps.aws.outcome == 'success'
