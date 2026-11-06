@@ -3,7 +3,8 @@ name: PatchTheCVE deploy (public repo; builds from the private source repo) (fas
 on:
   schedule:
     - cron: "30 */2 * * *"   # full run every 2 hours at 00:00, 02:00 ... IST (18:30, 20:30 ... UTC): new CVEs plus distro fixes
-    - cron: "30 1-23/2 * * *"  # history backfill lane on the odd hours, one hour after each full run: core stage only, several windows, no emails
+    # (backfill lane removed: history is complete, the extra deploys only cost S3 listing)
+    #    - cron: "30 1-23/2 * * *"  # history backfill lane on the odd hours, one hour after each full run: core stage only, several windows, no emails
     - cron: "*/30 * * * *"   # fast run: new CVEs, exploited list and feeds only (core stage)
   workflow_dispatch:          # manual "Run workflow" button, and the AWS timer (mode fast = core only, mode full-timer = full run unless one finished in the last 50 minutes)
     inputs:
