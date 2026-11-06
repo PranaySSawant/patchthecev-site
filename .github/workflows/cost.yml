@@ -1,0 +1,42 @@
+name: Daily AWS cost report (email)
+
+on:
+  schedule:
+    - cron: "40 3 * * *"   # 9:10 AM IST, after Cost Explorer has the previous day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: PranaySSawant/patchwatch
+          token: ${{ secrets.SOURCE_TOKEN }}
+          path: src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080369785465:role/patchthecve-deploy
+          aws-region: ap-south-1
+      - name: Email the cost report
+        run: |
+          pip install -q boto3
+          python cost_report.py > /tmp/out.txt 2>&1 || { tail -n 6 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::error title=cost::/'; echo; exit 1; }
+          tail -n 2 /tmp/out.txt | tr '\n' ' ' | sed 's/^/::notice title=cost::/'; echo
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: pranaysawantss2003@gmail.com
