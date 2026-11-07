@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -40,3 +40,12 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: pranaysawantss2003@gmail.com
+      - name: Publish or clear the pause flag (deploys read it from the pause branch)
+        run: |
+          git clone -q --depth 1 "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site"
+          git config user.name cost-guard; git config user.email cost-guard@users.noreply.github.com
+          git checkout -q --orphan pause; git rm -rfq . 2>/dev/null || true
+          if [ -f "$GITHUB_WORKSPACE/src/pause.json" ]; then cp "$GITHUB_WORKSPACE/src/pause.json" pause.json; MSG="pause deploys: cost limit near"; else echo '{"month":"none"}' > pause.json; MSG="no pause"; fi
+          git add pause.json; git commit -qm "$MSG"; git push -qf origin pause
+          echo "::notice title=pause::$MSG"

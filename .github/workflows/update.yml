@@ -46,6 +46,11 @@ jobs:
           SCHED: ${{ github.event.schedule }}
         run: |
           echo "skip=false" >> "$GITHUB_OUTPUT"
+          # cost limit: the daily cost report writes pause.json on the 'pause' branch when the month is near its limit; manual runs still work
+          if [ "$MODE" != "manual" ] || [ -n "$SCHED" ]; then
+            PJ=$(curl -fsS "https://raw.githubusercontent.com/${{ github.repository }}/pause/pause.json" 2>/dev/null || true)
+            if echo "$PJ" | grep -q "\"month\": *\"$(date -u +%Y-%m)\""; then echo "deploys paused for this month (cost limit): $PJ"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
           if [ "$SCHED" = "*/30 * * * *" ] || [ "$MODE" = "fast" ] || [ "$SCHED" = "30 1-23/2 * * *" ] || [ "$MODE" = "backfill" ]; then
             echo 'stages=["core"]' >> "$GITHUB_OUTPUT"
             if [ "$SCHED" = "*/30 * * * *" ] || [ "$MODE" = "fast" ]; then   # a fast run adds nothing while another run is already working: skip it instead of queueing
